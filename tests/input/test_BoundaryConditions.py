@@ -1,4 +1,7 @@
+import pytest
+
 from flowforge.input.BoundaryConditions import *
+from flowforge.input.UnitConverter import UnitConverter
 
 
 def test_GeneralBC():
@@ -36,6 +39,28 @@ def test_BoundaryConditions():
         assert bc.surface_name == boundary_conditions[bc_name]["surface"]
         assert bc.variable_name == boundary_conditions[bc_name]["variable"]
         assert bc.boundary_value.evaluate()  == boundary_conditions[bc_name]["value"]
+
+
+def test_BoundaryConditions_value_types():
+    # numbers and strings give the same boundary value
+    values = {"int": 1, "float": 1.0, "string": "1"}
+    BC = BoundaryConditions(**{name: {"boundary_type": "DirichletBC", "surface": "inlet", "variable": "pressure",
+                                      "value": value} for name, value in values.items()})
+    for bc in BC.boundary_conditions.values():
+        assert bc.boundary_value.evaluate() == 1
+        assert bc.time_function is None
+
+
+def test_BoundaryConditions_time_function_converts_units():
+    BC = BoundaryConditions(inlet_temp={"boundary_type": "DirichletBC", "surface": "inlet", "variable": "temperature",
+                                        "value": {"type": "linear", "intercept": 500.0, "slope": 10.0}})
+    BC._convertUnits(UnitConverter({"temperature": "C"}))
+    bc = BC.boundary_conditions["inlet_temp"]
+
+    # the boundary value is the time function's value at t = 0, both in K
+    assert bc.time_function.at(0.0) == pytest.approx(773.15)
+    assert bc.time_function.at(2.0) == pytest.approx(793.15)
+    assert bc.boundary_value.evaluate() == pytest.approx(773.15)
 
 
 if __name__ == "__main__":

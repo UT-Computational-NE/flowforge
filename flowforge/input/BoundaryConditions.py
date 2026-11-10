@@ -2,6 +2,7 @@ import abc
 from typing import Union
 from flowforge.input.UnitConverter import UnitConverter
 from flowforge.parsers.EquationParser import EquationParser
+from flowforge.input.TimeFunction import TimeFunction
 
 
 class BoundaryConditions:
@@ -106,19 +107,19 @@ class GeneralBC(abc.ABC):
     def __init__(self, surface: Union[str, int] , variable: str, value: Union[str, float, dict]):
         self._surface_name = surface
         self._variable_name = variable
-        # A time function {"type": ..., "magnitude": ..., "argument": ...}
-        # keeps its magnitude as the value (so units are converted with it)
+        # A time function, e.g. {"type": "linear", "intercept": 800, "slope": 10};
+        # the boundary value is then its value at t = 0
         self._time_function = None
         if isinstance(value, dict):
-            self._time_function = {"type": value["type"], "argument": value["argument"]}
-            value = value["magnitude"]
+            self._time_function = TimeFunction.from_dict(value)
+            value = self._time_function.at(0.0)
         self._value = EquationParser(str(value))
 
         self._boundary_type = None
 
     @property
     def time_function(self):
-        """The time function's type and argument (its magnitude is boundary_value), or None"""
+        """The boundary value as a TimeFunction of time (in converted units), or None"""
         return self._time_function
 
     @property
@@ -155,10 +156,9 @@ class GeneralBC(abc.ABC):
             Unit converter object used to get the scale factors needed
         """
         scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
-        if self._time_function is not None and shift_factor != 0.0:
-            raise ValueError(f"Boundary condition on {self.variable_name} with a time function needs units "
-                             "without an offset (e.g. K, not C). Use an expression of t instead.")
         self.boundary_value.performUnitConversion(scale_factor, shift_factor)
+        if self._time_function is not None:
+            self._time_function.convertUnits(scale_factor, shift_factor)
 
 
 class DirichletBC(GeneralBC):
