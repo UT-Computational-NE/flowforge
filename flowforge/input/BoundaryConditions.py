@@ -47,11 +47,11 @@ class BoundaryConditions:
             bc_type = bc["boundary_type"]
             bc_obj = bc_objects[bc_type]
             if bc_type in ("DirichletBC", "NeumannBC"):
-                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], str(bc["value"]))
+                self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"], bc["value"])
             elif bc_type == "AdiabaticBC":
                 self.bcs[bc_name] = bc_obj(bc["surface"], bc["variable"])
             elif bc_type == "PressureReferenceBC":
-                self.bcs[bc_name] = bc_obj(bc["surface"], str(bc["value"]))
+                self.bcs[bc_name] = bc_obj(bc["surface"], bc["value"])
                 if "variable" in bc and bc["variable"] != "pressure":
                     raise Exception("Pressure reference boundary condition variable must be pressure")
             else:
@@ -103,12 +103,23 @@ class GeneralBC(abc.ABC):
         Surface this boundary is applied to
     """
 
-    def __init__(self, surface: Union[str, int] , variable: str, value: str):
+    def __init__(self, surface: Union[str, int] , variable: str, value: Union[str, float, dict]):
         self._surface_name = surface
         self._variable_name = variable
-        self._value = EquationParser(value)
+        # A time function {"type": ..., "magnitude": ..., "argument": ...}
+        # keeps its magnitude as the value (so units are converted with it)
+        self._time_function = None
+        if isinstance(value, dict):
+            self._time_function = {"type": value["type"], "argument": value["argument"]}
+            value = value["magnitude"]
+        self._value = EquationParser(str(value))
 
         self._boundary_type = None
+
+    @property
+    def time_function(self):
+        """The time function's type and argument (its magnitude is boundary_value), or None"""
+        return self._time_function
 
     @property
     def boundary_type(self):
@@ -144,6 +155,9 @@ class GeneralBC(abc.ABC):
             Unit converter object used to get the scale factors needed
         """
         scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
+        if self._time_function is not None and shift_factor != 0.0:
+            raise ValueError(f"Boundary condition on {self.variable_name} with a time function needs units "
+                             "without an offset (e.g. K, not C). Use an expression of t instead.")
         self.boundary_value.performUnitConversion(scale_factor, shift_factor)
 
 
@@ -172,7 +186,7 @@ class DirichletBC(GeneralBC):
         Surface this boundary is applied to
     """
 
-    def __init__(self, surface: str, variable: str, value: str):
+    def __init__(self, surface: str, variable: str, value: Union[str, float, dict]):
         super().__init__(surface, variable, value)
         self._boundary_type = "DirichletBC"
 
@@ -257,6 +271,6 @@ class PressureReferenceBC(GeneralBC):
         Surface this boundary is applied to
     """
 
-    def __init__(self, surface: int, value: str):
+    def __init__(self, surface: int, value: Union[str, float, dict]):
         super().__init__(surface, "pressure", value)
         self._boundary_type = "PressureReferenceBC"
