@@ -24,7 +24,7 @@ voldict = {
 timedict = {"week": 604800, "hr": 3600, "min": 60, "ms": 0.001, "s": 1.0}
 
 # pressure to Pa
-presdict = {"kpa": 0.001, "pa": 1.0, "psi": 6894.76, "bar": 1e5, "atm": 101325, "torr": 133.322}
+presdict = {"kpa": 1000.0, "pa": 1.0, "psi": 6894.76, "bar": 1e5, "atm": 101325, "torr": 133.322}
 
 # mass flow rate to kg/s
 mfrdict = {

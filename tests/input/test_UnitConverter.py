@@ -78,3 +78,7 @@ def test_temp_R():
     units = {"temperature": "R"}
     uc = UnitConverter(units)
     assert round(uc.temperatureConversion(500), 3) == 277.778
+
+
+def test_kilopascal():
+    assert UnitConverter({"pressure": "kpa"}).pressureConversion == 1000
