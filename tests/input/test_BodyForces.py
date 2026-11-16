@@ -34,8 +34,19 @@ def test_BodyForces():
     return
 
 
+def test_BodyForcesSpatialUnitConversion():
+    # a spatial body force given in cm: after conversion its coordinates are metres, like the meshes it is evaluated on
+    import math
+    from flowforge.input.UnitConverter import UnitConverter
+
+    BF = BodyForces(**{"bf": {"type": "heat_generation", "variable": "temperature", "value": "x + z"}})
+    BF._convertUnits(UnitConverter({"length": "cm", "temperature": "K"}))
+    assert math.isclose(BF.body_forces["bf"].body_force_value.evaluate(x=0.3, z=0.02), 30 + 2)
+
+
 if __name__ == "__main__":
     test_GeneralBF()
     test_InternalHeatGenerationBF()
 
     test_BodyForces()
+    test_BodyForcesSpatialUnitConversion()

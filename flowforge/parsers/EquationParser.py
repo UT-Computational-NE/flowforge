@@ -81,15 +81,43 @@ class EquationParser:
     def variables(self):
         return self._variables
 
+    def convertCoordinates(self, length_factor: Optional[float] = 1.0):
+        """Make the spatial coordinates of the equation SI.
+
+        An input equation is written with x, y, z in the input's length unit, but it is evaluated at SI positions
+        (meshes are converted to SI). This substitutes x -> x / length_factor (likewise y, z), so evaluating the
+        new equation at a position in metres gives what the input equation gives at the same position in input units.
+
+        Parameters
+        ----------
+        length_factor : Optional[float]
+            Metres per input length unit (UnitConverter.lengthConversion), by default 1 (no change).
+
+        Example
+        -------
+        Input lengths in cm:
+        >>> parser = EquationParser("x")
+        >>> parser.convertCoordinates(0.01)
+        >>> parser.evaluate(x=0.5)    # 0.5 m = 50 cm
+        50.0
+        """
+        if length_factor == 1.0:
+            return
+        coordinates = {sympy.Symbol(c): sympy.Symbol(c) / length_factor for c in ("x", "y", "z")}
+        self.expression = self._expression.subs(coordinates, simultaneous=True)
+        self.inputEquation = str(self.expression)
+
     def performUnitConversion(
         self,
         scale_factor: Optional[float] = 1.0,
         shift_factor: Optional[float] = 0.0,
+        length_factor: Optional[float] = 1.0,
     ):
         """Apply unit conversion to the equation.
 
         This method modifies the equation by applying a linear transformation:
         new_equation = (scale_factor * original_equation) + shift_factor
+        and, with length_factor, also makes its coordinates SI (see convertCoordinates).
 
         This transformation is useful for converting between different unit systems,
         such as from Celsius to Kelvin (using shift_factor) or from inches to
@@ -101,6 +129,8 @@ class EquationParser:
             Multiplicative factor to apply to the equation, by default 1.
         shift_factor : Optional[float]
             Value to add to the equation after scaling, by default 0.
+        length_factor : Optional[float]
+            Metres per input length unit, applied to x, y, z, by default 1 (coordinates unchanged).
 
         Notes
         -----
@@ -114,6 +144,7 @@ class EquationParser:
         >>> parser.performUnitConversion(1, 273.15)
         This transforms T to (1 * (T)) + 273.15
         """
+        self.convertCoordinates(length_factor)
         scaled_equation = "(" + str(scale_factor) + " * (" + self.inputEquation + ")) + " + str(shift_factor)
         scaled_expression = sympy.sympify(scaled_equation)
         self.inputEquation = scaled_equation

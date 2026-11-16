@@ -110,7 +110,7 @@ class GeneralWF(abc.ABC):
             Unit converter object used to get the scale factors needed
         """
         scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
-        self.wall_function_value.performUnitConversion(scale_factor, shift_factor)
+        self.wall_function_value.performUnitConversion(scale_factor, shift_factor, uc.lengthConversion)
 
 
 class HeatFluxWF(GeneralWF):
