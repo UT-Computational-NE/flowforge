@@ -105,7 +105,7 @@ class GeneralBF(abc.ABC):
             Unit converter object used to get the scale factors needed
         """
         scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
-        self.body_force_value.performUnitConversion(scale_factor, shift_factor)
+        self.body_force_value.performUnitConversion(scale_factor, shift_factor, uc.lengthConversion)
 
 
 class HeatGenerationBF(GeneralBF):

@@ -79,6 +79,20 @@ def test_unit_conversion():
     run_all_values(variables, expression, test_name, equation, test_inputs, expected_results)
 
 
+def test_coordinate_conversion():
+    # written in cm, evaluated at positions in metres: f(x, y, z) at 0.5 m, 0.2 m, 0.1 m = f at 50, 20, 10 cm
+    expression = EquationParser("x + 2*y**2 - z")
+    expression.convertCoordinates(0.01)
+    assert math.isclose(expression.evaluate(x=0.5, y=0.2, z=0.1), 50 + 2 * 20**2 - 10)
+
+
+def test_unit_conversion_with_lengths():
+    # value scaled and shifted as before, coordinates made SI first: 1.8 * (10.1 + 3.2 * x_cm) + 22 at x = 0.05 m
+    expression = EquationParser("10.1 + 3.2*x")
+    expression.performUnitConversion(1.8, 22, 0.01)
+    assert math.isclose(expression.evaluate(x=0.05), 1.8 * (10.1 + 3.2 * 5) + 22)
+
+
 def run_all_values(variables: list, expression, test_name, original_equation, test_inputs, expected_values):
     number_of_variables = len(variables)
     number_of_tests = len(test_inputs)

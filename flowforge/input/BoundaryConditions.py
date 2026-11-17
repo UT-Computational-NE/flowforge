@@ -156,7 +156,7 @@ class GeneralBC(abc.ABC):
             Unit converter object used to get the scale factors needed
         """
         scale_factor, shift_factor = uc.get_variable_conversion(self.variable_name)
-        self.boundary_value.performUnitConversion(scale_factor, shift_factor)
+        self.boundary_value.performUnitConversion(scale_factor, shift_factor, uc.lengthConversion)
         if self._time_function is not None:
             self._time_function.convertUnits(scale_factor, shift_factor)
 
