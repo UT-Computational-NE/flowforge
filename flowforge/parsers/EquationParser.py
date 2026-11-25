@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 import re
 import sympy
 import scipy
+import numpy as np
 
 
 class EquationParser:
@@ -202,7 +203,7 @@ class EquationParser:
 
         return float(expression)
 
-    def computeIntegral(
+    def computeVolumeAverage(
             self,
             x_bounds: Tuple[float, float] = (0,0),
             y_bounds: Tuple[float, float] = (0,0),
@@ -233,15 +234,21 @@ class EquationParser:
             expression = self._expression
 
         x, y, z = sympy.symbols('x y z')
-        func = sympy.lambdify((x, y, z), expression, modules='numpy')
+        func = sympy.lambdify((z, y, x), expression, modules='numpy')
 
         integration_result, error = scipy.integrate.tplquad(
             func,
-            min(z_bounds), max(z_bounds),
-            min(y_bounds), max(y_bounds),
             min(x_bounds), max(x_bounds),
+            min(y_bounds), max(y_bounds),
+            min(z_bounds), max(z_bounds),
         )
 
         assert (error < 1e-7), f"Integration error is >1e-7 (error = {error})"
 
-        return integration_result
+        volume = (
+            max((max(x_bounds) - min(x_bounds)), 1e-16) *
+            max((max(y_bounds) - min(y_bounds)), 1e-16) *
+            max((max(z_bounds) - min(z_bounds)), 1e-16)
+        )
+
+        return integration_result / volume
